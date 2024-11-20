@@ -1,79 +1,99 @@
 package org.example.integer.list;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class IntegerListImpl implements IntegerList {
 
-    private List<Integer> items;
+    private Integer[] items;
+    private int size;
 
     public IntegerListImpl() {
-        this.items = new ArrayList<>();
+        this.items = new Integer[10];
+        this.size = 0;
     }
 
     @Override
     public Integer add(Integer item) {
-        items.add(item);
+        ensureCapacity();
+        items[size++] = item;
         return item;
     }
 
     @Override
     public Integer add(int index, Integer item) {
-        if(index < 0 || index > items.size()) {
-            throw new IndexOutOfBoundsException();
+        if (index < 0 || index > size) {
+            throw new IndexOutOfBoundsException("Индекс выходит за пределы списка");
         }
-        items.add(index, item);
+        ensureCapacity();
+        System.arraycopy(items, index, items, index + 1, size - index);
+        items[index] = item;
+        size++;
         return item;
     }
 
     @Override
     public Integer set(int index, Integer item) {
-        if (index < 0 || index >= items.size()) {
+        if (index < 0 || index >= size) {
             throw new IndexOutOfBoundsException("Индекс выходит за пределы списка");
         }
-        return items.set(index, item);
+        Integer oldValue = items[index];
+        items[index] = item;
+        return oldValue;
     }
 
     @Override
     public Integer remove(Integer item) {
-        if (!items.contains(item)) {
+        int index = indexOf(item);
+        if (index == -1) {
             throw new IllegalArgumentException("Элемент отсутствует в списке");
         }
-        items.remove(item);
-        return item;
+        return remove(index);
     }
 
     @Override
     public Integer remove(int index) {
-        if (index < 0 || index >= items.size()) {
+        if (index < 0 || index >= size) {
             throw new IndexOutOfBoundsException("Индекс выходит за пределы списка");
         }
-        return items.remove(index);
+        Integer removedItem = items[index];
+        System.arraycopy(items, index + 1, items, index, size - index - 1);
+        items[--size] = null;
+        return removedItem;
     }
 
     @Override
     public boolean contains(Integer item) {
-        Integer[] storageCopy = toArray();
-        sort(storageCopy);
-        return binarySearch(storageCopy, item);
+        return indexOf(item) != -1;
     }
 
     @Override
     public int indexOf(Integer item) {
-        return items.indexOf(item);
+        for (int i = 0; i < size; i++) {
+            if (items[i].equals(item)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     @Override
     public int lastIndexOf(Integer item) {
-        return items.lastIndexOf(item);
+        for (int i = size - 1; i >= 0; i--) {
+            if (items[i].equals(item)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     @Override
     public Integer get(int index) {
-        if (index < 0 || index >= items.size()) {
+        if (index < 0 || index >= size) {
             throw new IndexOutOfBoundsException("Индекс выходит за пределы списка");
         }
-        return items.get(index);
+        return items[index];
     }
 
     @Override
@@ -81,11 +101,11 @@ public class IntegerListImpl implements IntegerList {
         if (otherList == null) {
             throw new IllegalArgumentException("Сравниваемый список не должен быть null");
         }
-        if (otherList.size() != this.size()) {
+        if (this.size != otherList.size()) {
             return false;
         }
-        for (int i = 0; i < this.size(); i++) {
-            if (!this.get(i).equals(otherList.get(i))) {
+        for (int i = 0; i < size; i++) {
+            if (!this.items[i].equals(otherList.get(i))) {
                 return false;
             }
         }
@@ -94,22 +114,23 @@ public class IntegerListImpl implements IntegerList {
 
     @Override
     public int size() {
-        return items.size();
+        return size;
     }
 
     @Override
     public boolean isEmpty() {
-        return items.isEmpty();
+        return size==0;
     }
 
     @Override
     public void clear() {
-        items.clear();
+        Arrays.fill(items, 0, size, null);
+        size = 0;
     }
 
     @Override
     public Integer[] toArray() {
-        return items.toArray(new Integer[0]);
+        return Arrays.copyOf(items, size);
     }
 
     @Override
@@ -144,5 +165,44 @@ public class IntegerListImpl implements IntegerList {
             }
         }
         return false;
+    }
+    private void ensureCapacity() {
+        if (size == items.length) {
+            grow();
+        }
+    }
+    private void grow() {
+        items = Arrays.copyOf(items, size + size / 2);
+    }
+
+    private void growIfNeeded() {
+        if (size == items.length) {
+            grow();
+        }
+    }
+
+    private void quickSort(int low, int high) {
+        if (low < high) {
+            int pivotIndex = partition(low, high);
+            quickSort(low, pivotIndex - 1);
+            quickSort(pivotIndex + 1, high);
+        }
+    }
+    private int partition(int low, int high) {
+        Integer pivot = items[high];
+        int i = low - 1;
+        for (int j = low; j < high; j++) {
+            if (items[j] <= pivot) {
+                i++;
+                swap(i, j);
+            }
+        }
+        swap(i + 1, high);
+        return i + 1;
+    }
+    private void swap(int i, int j) {
+        Integer temp = items[i];
+        items[i] = items[j];
+        items[j] = temp;
     }
 }
